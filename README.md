@@ -101,3 +101,56 @@ The library Flask-SocketIO which is utilized has built in CORS support. This pre
 
 ## References
 [The Websocket Protocol](https://tools.ietf.org/html/rfc6455)
+
+
+
+# ACCSCI Modified
+
+
+## 运行前配置
+激活虚拟环境下输入以下命令
+```
+flask shell
+```
+```
+    from app import db
+    db.create_all()
+
+```
+
+你遇到的错误是因为 `fcntl` 模块是 Unix 系统特有的，而在 Windows 上没有这个模块。`gunicorn` 通常用于 Unix 系统（如 Linux 和 macOS），因为它依赖于一些 Unix 特有的功能。在 Windows 上运行 `gunicorn` 时，会遇到这样的问题。
+
+### 解决方案
+
+#### 1. **使用 `waitress` 作为替代**
+
+`waitress` 是一个纯 Python 的 WSGI 服务器，适用于 Windows 系统。你可以使用 `waitress` 来替代 `gunicorn`。
+
+首先，安装 `waitress`：
+
+```sh
+pip install waitress
+```
+
+然后，使用 `waitress` 启动你的 Flask 应用：
+
+```sh
+waitress-serve --host=127.0.0.1 --port=5000 app:app
+```
+
+#### 2. **使用 `gevent` 和 `gunicorn` 的组合**
+
+如果你仍然希望使用 `gunicorn`，可以尝试使用 `gevent` 作为 worker 类。`gevent` 是一个基于协程的并发库，可以在 Windows 上运行。
+
+首先，确保你已经安装了 `gevent`：
+
+```sh
+pip install gevent
+```
+
+然后，使用 `gevent` 作为 worker 类启动 `gunicorn`：
+
+```sh
+gunicorn --worker-class gevent -w 1 app:app
+```
+

@@ -109,7 +109,7 @@ def register_post():
         flash('Email address already exists')
         return redirect(url_for('register'))
 
-    new_user = User(username=username, password=generate_password_hash(password, method='sha256'), websocket_id=uuid4().hex)
+    new_user = User(username=username, password=generate_password_hash(password, method='pbkdf2:sha256'), websocket_id=uuid4().hex)
 
     db.session.add(new_user)
     db.session.commit()
