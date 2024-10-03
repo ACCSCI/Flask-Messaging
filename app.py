@@ -8,7 +8,7 @@ import random, string
 from sqlalchemy import exists, case, distinct
 from flask_moment import Moment
 from datetime import datetime
-
+import logging
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -16,7 +16,7 @@ app.config['SECRET_KEY'] = 'Your_secret_KEY-H3rE'
 
 
 db = SQLAlchemy(app)
-socketio = SocketIO(app)
+socketio = SocketIO(app,async_mode='gevent')
 login_manager = LoginManager(app)
 moment = Moment(app)
 
@@ -242,13 +242,13 @@ def messages():
 		##########
 
 
-		message_threads = message_threads.paginate(page, 5, False)
+		message_threads = message_threads.paginate(page=page, per_page=5, error_out=False)
 
 		#This returns rendered threads for insert when the "Load additional threads" button is clicked on /Messages/
 		if page > 1:
 			paged_threads = render_template('fetch_new_thread.html', messages=message_threads.items, unread_threads_list=unread_threads_list)
 
-			if not unread_messages.filter(Message.url.in_(message_thread_list)).order_by(sort_order).paginate(page+1, 5, False).items:
+			if not unread_messages.filter(Message.url.in_(message_thread_list)).order_by(sort_order).paginate(page=page+1,per_page=5,error_out=False).items:
 				fetch_button = 'false'
 			else:
 				fetch_button = 'true'
@@ -414,5 +414,22 @@ def message_delete():
 
 
 
+# 配置日志记录
+handler = logging.StreamHandler()
+handler.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+app.logger.addHandler(handler)
+app.logger.setLevel(logging.INFO)
+
+# 配置 waitress/gevent 日志记录
+logging.basicConfig(level=logging.INFO)
+
 if __name__ == "__main__":
-    socketio.run(app)
+    # socketio.run(app)
+	from gevent import pywsgi
+	from geventwebsocket.handler import WebSocketHandler
+
+	app.logger.info('Starting gevent server...')
+	server = pywsgi.WSGIServer(('127.0.0.1', 5000), app, handler_class=WebSocketHandler)
+	server.serve_forever()
